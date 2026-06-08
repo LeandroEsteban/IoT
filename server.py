@@ -8,6 +8,7 @@ import DistributedPhotoProcessor
 
 
 DEFAULT_ENDPOINT = "tcp -h 0.0.0.0 -p 10000"
+MESSAGE_SIZE_MAX_KB = 32768
 
 
 class ImageProcessorI(DistributedPhotoProcessor.ImageProcessor):
@@ -56,8 +57,11 @@ class ImageProcessorI(DistributedPhotoProcessor.ImageProcessor):
 
 def main():
     endpoint = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_ENDPOINT
+    init_data = Ice.InitializationData()
+    init_data.properties = Ice.createProperties(sys.argv)
+    init_data.properties.setProperty("Ice.MessageSizeMax", str(MESSAGE_SIZE_MAX_KB))
 
-    with Ice.initialize(sys.argv) as communicator:
+    with Ice.initialize(sys.argv, initData=init_data) as communicator:
         adapter = communicator.createObjectAdapterWithEndpoints(
             "ImageProcessorAdapter", endpoint
         )
@@ -67,6 +71,7 @@ def main():
 
         print(f"Servidor escuchando en: {endpoint}")
         print("Identidad del objeto: ImageProcessor")
+        print(f"Tamano maximo de mensaje: {MESSAGE_SIZE_MAX_KB} KB")
         communicator.waitForShutdown()
 
 

@@ -7,6 +7,8 @@ import DistributedPhotoProcessor
 
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = "10000"
+CONNECTION_TIMEOUT_MS = 5000
+MESSAGE_SIZE_MAX_KB = 32768
 
 
 def read_image(path):
@@ -29,12 +31,20 @@ def usage():
 
 def connect_processor(communicator, host, port):
     proxy = communicator.stringToProxy(
-        f"ImageProcessor:default -h {host} -p {port}"
+        f"ImageProcessor:default -h {host} -p {port} -t {CONNECTION_TIMEOUT_MS}"
     )
+    print(f"Conectando a {host}:{port}...")
     processor = DistributedPhotoProcessor.ImageProcessorPrx.checkedCast(proxy)
     if not processor:
         raise RuntimeError("No se pudo conectar con el servidor ImageProcessor")
     return processor
+
+
+def create_init_data():
+    init_data = Ice.InitializationData()
+    init_data.properties = Ice.createProperties(sys.argv)
+    init_data.properties.setProperty("Ice.MessageSizeMax", str(MESSAGE_SIZE_MAX_KB))
+    return init_data
 
 
 def main():
@@ -45,7 +55,7 @@ def main():
     operation = sys.argv[1].lower()
 
     try:
-        with Ice.initialize(sys.argv) as communicator:
+        with Ice.initialize(sys.argv, initData=create_init_data()) as communicator:
             if operation == "ping":
                 host = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_HOST
                 port = sys.argv[3] if len(sys.argv) > 3 else DEFAULT_PORT
